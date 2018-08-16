@@ -2503,11 +2503,16 @@
       this.reload = bind(this.reload, this);
       this.blockclear = bind(this.blockclear, this);
       this.getCenterNum = bind(this.getCenterNum, this);
+      this.animateComplete = bind(this.animateComplete, this);
       this.loadComplete = bind(this.loadComplete, this);
       this.loadError = bind(this.loadError, this);
       this.loadFile = bind(this.loadFile, this);
       this.addList = bind(this.addList, this);
       this.setList = bind(this.setList, this);
+      this.getPosition = bind(this.getPosition, this);
+      this.touchend = bind(this.touchend, this);
+      this.touchmove = bind(this.touchmove, this);
+      this.touchstart = bind(this.touchstart, this);
       this.initialize = bind(this.initialize, this);
       return ImageViewer.__super__.constructor.apply(this, arguments);
     }
@@ -2540,6 +2545,12 @@
 
     ImageViewer.prototype.swipeObj = {};
 
+    ImageViewer.prototype.position = 0;
+
+    ImageViewer.prototype.direction = '';
+
+    ImageViewer.prototype.vector = '';
+
     ImageViewer.prototype.initialize = function() {
       var imageList, wrap;
       imageList = [];
@@ -2562,14 +2573,46 @@
         y: 0
       });
       this.swipeMc.graphics.f("#fff").dr(0, 0, 256, 256);
-      this.container.addChild(this.swipeMc);
-      this.swipeMc.alpha = 0.1;
+      wrap.addChild(this.swipeMc);
+      this.swipeMc.alpha = 0.01;
+      this.swipeMc.addEventListener("touchstart", this.touchstart);
+      this.swipeMc.addEventListener("touchmove", this.touchmove);
+      this.swipeMc.addEventListener("touchend", this.touchend);
+      this.swipeMc.addEventListener("mousedown", this.touchstart);
+      this.swipeMc.addEventListener("pressmove", this.touchmove);
+      this.swipeMc.addEventListener("pressup", this.touchend);
       this.loader = new createjs.LoadQueue();
       this.loader.on("error", this.loadError);
       this.loader.on("fileload", this.loadFile);
       this.loader.on("complete", this.loadComplete);
       this.addButtons();
       return this.stage;
+    };
+
+    ImageViewer.prototype.touchstart = function(e) {
+      console.log('touchstart');
+      this.position = this.getPosition(e);
+      return this.direction = '';
+    };
+
+    ImageViewer.prototype.touchmove = function(e) {
+      if (this.position - this.getPosition(e) > 70) {
+        return this.direction = 'left';
+      } else if (this.position - this.getPosition(e) < -70) {
+        return this.direction = 'right';
+      }
+    };
+
+    ImageViewer.prototype.touchend = function(e) {
+      if (this.direction === 'right') {
+        return this.prev();
+      } else if (this.direction === 'left') {
+        return this.next();
+      }
+    };
+
+    ImageViewer.prototype.getPosition = function(e) {
+      return e.stageX;
     };
 
     ImageViewer.prototype.setList = function(_objs) {
@@ -2620,8 +2663,26 @@
       }
       this.blocklayout.setLayout(blockList);
       this.render();
-      this.buttonon();
-      return this.imageList = [];
+      this.imageList = [];
+      console.log('stat');
+      return setTimeout((function(_this) {
+        return function() {
+          _this.buttonon();
+          return _this.animateComplete();
+        };
+      })(this), 200);
+    };
+
+    ImageViewer.prototype.animateComplete = function() {
+      console.log('stat2');
+      if (this.vector === 'next') {
+        this.next();
+        this.vector = '';
+      }
+      if (this.vector === 'prev') {
+        this.prev();
+        return this.vector = '';
+      }
     };
 
     ImageViewer.prototype.getCenterNum = function() {
@@ -2646,6 +2707,7 @@
 
     ImageViewer.prototype.reload = function(_vector) {
       var b, b3, bid, j, len, num;
+      this.vector = _vector;
       for (j = 0, len = blockList.length; j < len; j++) {
         b = blockList[j];
         num = b.model.get("num");
@@ -2654,7 +2716,7 @@
           b3 = num;
         }
       }
-      if (_vector === 'next') {
+      if (this.vector === 'next') {
         return $.getJSON(searchApi, {
           'n': b3,
           'request': '4,5,6',

@@ -1769,6 +1769,9 @@ class ImageViewer extends Backbone.View
   prevButton: null
   blocklayout: null
   swipeObj:{}
+  position:0
+  direction:''
+  vector:''
 
   initialize:=>
     # デフォルト値から環境別の値へ変更
@@ -1793,8 +1796,26 @@ class ImageViewer extends Backbone.View
 
     @swipeMc = new createjs.Shape().set({x:30,y:0})
     @swipeMc.graphics.f("#fff").dr(0,0,256,256)
-    @container.addChild(@swipeMc)
-    @swipeMc.alpha = 0.1
+    wrap.addChild(@swipeMc)
+    @swipeMc.alpha = 0.01
+
+    @swipeMc.addEventListener("touchstart",@touchstart)
+    @swipeMc.addEventListener("touchmove",@touchmove)
+    @swipeMc.addEventListener("touchend",@touchend)
+
+    @swipeMc.addEventListener("mousedown",@touchstart)
+    @swipeMc.addEventListener("pressmove",@touchmove)
+    @swipeMc.addEventListener("pressup",@touchend)
+#        'touchstart mousedown': (e)=>
+#            e.preventDefault()
+#            console.log 'touchstart mousedown'+e.pageX
+#        'touchmove mousemove': (e)=>
+#            e.preventDefault()
+#            console.log 'touchmove mousemove'+e.pageX
+#        'touchend mouseup': (e)=>
+#            e.preventDefault()
+#            console.log 'touchend mouseup'+e.pageX
+
 
     @loader = new createjs.LoadQueue()
 #    @loader.setMaxConnections(1)
@@ -1805,6 +1826,22 @@ class ImageViewer extends Backbone.View
     @addButtons()
 
     @stage
+  touchstart:(e)=>
+  	console.log 'touchstart'
+  	@position = @getPosition(e)
+  	@direction =''
+  touchmove:(e)=>
+    if (@position - @getPosition(e) > 70)
+      @direction = 'left'
+    else if (@position - @getPosition(e) < -70)
+      @direction = 'right'
+  touchend:(e)=>
+    if (@direction == 'right')
+      @prev()
+    else if (@direction == 'left')
+      @next()
+  getPosition:(e)=>
+  	e.stageX
 
   setList:(_objs)=>
     @loader.loadManifest(_objs)
@@ -1842,8 +1879,21 @@ class ImageViewer extends Backbone.View
     @blocklayout.setLayout(blockList)
 
     @render()
-    @buttonon()
     @imageList = []
+    console.log 'stat'
+    setTimeout =>
+      @buttonon()
+      @animateComplete()
+    ,200
+  animateComplete:=>
+    console.log 'stat2'
+    if(@vector == 'next')
+      @next()
+      @vector = ''
+    if(@vector == 'prev')
+      @prev()
+      @vector = ''
+
   getCenterNum:=>
     for b in blockList
       bid = b.model.get("bid")
@@ -1859,13 +1909,14 @@ class ImageViewer extends Backbone.View
     #ボタンの無効化
     @buttonoff()
   reload:(_vector)=>
+    @vector = _vector
 
     for b in blockList
 #      b3 = 466
       num = b.model.get("num")
       bid = b.model.get("bid")
       if bid is 3 then b3 = num
-    if _vector is 'next'
+    if @vector is 'next'
       $.getJSON searchApi,{'n':b3,'request':'4,5,6','base':3},(data,status)=>
         @addList(data)
     else
@@ -1919,14 +1970,14 @@ class ImageViewer extends Backbone.View
       when 39
         @next()
 
-  prev:()=>
+  prev:=>
     if @blocklayout.isPrevBlockExists()
       @blocklayout.prev() 
     else
       @blocklayout.loadPrevBlock()
       @buttonoff()
 
-  next:()=>
+  next:=>
     if @blocklayout.isNextBlockExists()
       @blocklayout.next()
     else
