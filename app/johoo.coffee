@@ -42,6 +42,8 @@ zoomSize = []
 
 blockList = []
 
+zooming = false
+
 ###
  *
  * Class PhotomosaicViewer メインクラス
@@ -378,7 +380,11 @@ class SearchPanel extends Backbone.View
 
     #「続きを読む」を有効化
     $(@el).on 'bottom',@bottom
-
+#サジェスト一時凍結
+#    list = JSON.parse(Cookies.get("_pit_id"))
+#    console.log(document.cookie)
+    #decodeURIComponent
+#    new Suggest.LocalMulti("id","suggest",list,{dispMax:10,interval:1000})
     #スクロールされたら自動読み込み。現在凍結中。
     #$(window).scroll =>
     #  if $(document).height() < $(window).scrollTop()+Browser.height+4 and @loadingStatus is false and @execSearched
@@ -435,15 +441,15 @@ class SearchPanel extends Backbone.View
 
     #検索条件整形。とりあえず版に過ぎず、改良の余地あり。設定ファイルから読み込む方式にする事。
     if $('#SearchPanelInnerContents #id').val() isnt undefined
-      query += 'id='+$('#SearchPanelInnerContents #id').val()+'&'
+      query += 'id='+encodeURIComponent($('#SearchPanelInnerContents #id').val().trim())+'&'
     if $('#SearchPanelInnerContents #b1').val() isnt undefined
-      query += 'b1='+$('#SearchPanelInnerContents #b1').val()+'&'
+      query += 'b1='+encodeURIComponent($('#SearchPanelInnerContents #b1').val().trim())+'&'
     if $('#SearchPanelInnerContents #b2').val() isnt undefined
-      query += 'b2='+$('#SearchPanelInnerContents #b2').val()+'&'
+      query += 'b2='+encodeURIComponent($('#SearchPanelInnerContents #b2').val().trim())+'&'
     if $('#SearchPanelInnerContents #b3').val() isnt undefined
-      query += 'b3='+$('#SearchPanelInnerContents #b3').val()+'&'
+      query += 'b3='+encodeURIComponent($('#SearchPanelInnerContents #b3').val().trim())+'&'
     if $('#SearchPanelInnerContents #b4').val() isnt undefined
-      query += 'b4='+$('#SearchPanelInnerContents #b4').val()+'&'
+      query += 'b4='+encodeURIComponent($('#SearchPanelInnerContents #b4').val().trim())+'&'
 
     if query isnt '' then query.slice 0,-1
 
@@ -1010,6 +1016,7 @@ class Pyramid extends Backbone.View
     #表示位置分岐
     switch h
       when 'zoomIn'
+        zooming = true
         pos = @moveToZoomInPos()
         $(@el).find('img').hide()
         $(@el).animate({
@@ -1021,6 +1028,7 @@ class Pyramid extends Backbone.View
         )
         @trigger 'marker',200
       when 'zoomOut'
+        zooming = true
         $(@el).find('img').hide()
         pos = @moveToZoomOutPos()
         $(@el).animate({
@@ -1047,6 +1055,7 @@ class Pyramid extends Backbone.View
       else
         @render @checkActiveTile()
   animateComplete:=>
+    zooming = false
     $(@el).find('img').show()
     @render @checkActiveTile()
 
@@ -1374,14 +1383,14 @@ class ControlPanel extends Backbone.View
 
   #ズームインボタンが押下された
   zoomIn:=>
-    if nowZoom < zoomSize.length-1
+    if nowZoom < zoomSize.length-1 && !zooming
       prevZoom = nowZoom
       nowZoom++
       @trigger 'change','zoomIn'
 
   #ズームアウトボタンが押下された
   zoomOut:=>
-    if nowZoom > minZoom
+    if nowZoom > minZoom && !zooming
       prevZoom = nowZoom
       nowZoom--
       @trigger 'change','zoomOut'
@@ -1624,41 +1633,44 @@ class BlockLayout extends Backbone.View
   blockLayout: []
 
   initialize:=>
+  setWidth:(_width)=>
+    console.log 'WIDTH:'+_width
     @blockLayout = [{
-      x:(320/2)-(tileWidth/2)-(256*3)*0.9-5
+      x:(_width/2)-(tileWidth/2)-(256*3)*0.9-5
       y:(tileHeight-(256*0.9))/2
       scale:0.9
     },
     {
-      x:(320/2)-(tileWidth/2)-(256*2)*0.9-5
+      x:(_width/2)-(tileWidth/2)-(256*2)*0.9-5
       y:(tileHeight-(256*0.9))/2
       scale:0.9
     },
     {
-      x:(320/2)-(tileWidth/2)-(256*0.9)-5
+      x:(_width/2)-(tileWidth/2)-(256*0.9)-5
       y:(tileHeight-(256*0.9))/2
       scale:0.9
     },
     {
-      x:(320/2)-(tileWidth/2)
+      x:(_width/2)-(tileWidth/2)
       y:0
       scale:1
     },
     {
-      x:(320/2)-(tileWidth/2)+256+5
+      x:(_width/2)-(tileWidth/2)+256+5
       y:(tileHeight-(256*0.9))/2
       scale:0.9
     },
     {
-      x:(320/2)-(tileWidth/2)+(256*2)+5
+      x:(_width/2)-(tileWidth/2)+(256*2)+5
       y:(tileHeight-(256*0.9))/2
       scale:0.9
     },
     {
-      x:(320/2)-(tileWidth/2)+(256*3)+5
+      x:(_width/2)-(tileWidth/2)+(256*3)+5
       y:(tileHeight-(256*0.9))/2
       scale:0.9
     }]
+
   setLayout:(_list)=>
     for item in _list
       bid = item.model.get("bid")
@@ -1670,6 +1682,7 @@ class BlockLayout extends Backbone.View
           scaleY:@blockLayout[bid].scale
         },0)
   changeLayout:(_move)=>
+    console.log 'changeLayout'
     for item in blockList
       bid = item.model.get("bid")
       num = item.model.get("num")
@@ -1775,6 +1788,7 @@ class ImageViewer extends Backbone.View
 
   initialize:=>
     # デフォルト値から環境別の値へ変更
+    @width = if Browser.width-40 < @width then Browser.width-40 else @width
 #    @width = Browser.width-40
 #    @height = Browser.height
     imageList = []
@@ -1786,7 +1800,8 @@ class ImageViewer extends Backbone.View
     wrap = new createjs.Container()
     @stage.addChild(wrap)
 
-    @blocklayout = new BlockLayout()
+    @blocklayout = new BlockLayout
+    @blocklayout.setWidth(@width)
     @blocklayout.on "blockclear",@blockclear
     @blocklayout.on "reload",@reload
     @blocklayout.on "layoutchanged",@layoutchanged
@@ -1815,7 +1830,6 @@ class ImageViewer extends Backbone.View
 #        'touchend mouseup': (e)=>
 #            e.preventDefault()
 #            console.log 'touchend mouseup'+e.pageX
-
 
     @loader = new createjs.LoadQueue()
 #    @loader.setMaxConnections(1)
@@ -1912,7 +1926,6 @@ class ImageViewer extends Backbone.View
     @vector = _vector
 
     for b in blockList
-#      b3 = 466
       num = b.model.get("num")
       bid = b.model.get("bid")
       if bid is 3 then b3 = num
@@ -1929,10 +1942,12 @@ class ImageViewer extends Backbone.View
   addButtons:=>
 
     @nextButton = @createButton("▶")
-    @nextButton.x = 292
+    console.log @nextButton.width
+    @nextButton.x = if @width < 320 then ((@width-256)/2)+256-28 else 292
     @stage.addChild(@nextButton)
 
     @prevButton = @createButton("◀")
+    @prevButton.x = if @width < 320 then (@width-256)/2 else 0
     @stage.addChild(@prevButton)
 
     @buttonon()
@@ -1987,9 +2002,11 @@ class ImageViewer extends Backbone.View
   layoutchanged:(_move)=>
     @trigger 'load'+_move
   createButton:(_label)=>
+    _y = if @width < 320 then 13 else 0
+    _h = if @width < 320 then 256*0.9 else 256
     btn = new createjs.Container()
     btnBg = new createjs.Shape()
-    btnBg.graphics.beginFill("black").drawRoundRect(0, 13, 28, 230, 0, 0);
+    btnBg.graphics.beginFill("black").drawRoundRect(0, _y, 28, _h, 0, 0);
     btnBg.alpha=0.2
     btn.addChild(btnBg)
     btnLabel = new createjs.Text(_label, "24px sans-serif", "white")
@@ -2262,3 +2279,5 @@ setInitData = (data) ->
 
 $(window).on 'load', ->
   getSection "#{INIT_FILE}"+cache,null,setInitData
+  #list = getList()
+

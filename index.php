@@ -38,7 +38,7 @@
 
 	<script type="text/javascript" src="lib/package.js"></script>
 
-	<script type="text/javascript" src="app/johoo.js"></script>
+	<script type="text/javascript" src="app/johoo.coffee"></script>
 	<!--[if lte IE 9]>
 	<script type="text/javascript" src="lib/jquery.ah-placeholder.js"></script>
 	<![endif]-->
@@ -46,7 +46,8 @@
 	<script type="text/javascript" src="lib/jquery.bottom-1.0.js"></script>
 	<link rel="stylesheet" href="css/jquery.fancybox.min.css" />
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.js"></script>
-	<script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
+	<script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+
 
 	<script>
 	function openFacebook(){

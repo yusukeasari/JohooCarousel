@@ -4,6 +4,7 @@ body {
 	margin: 0;
 	background-image:url(../form/img/bg.png);
 	background-size: cover;
+	background: #596778;
 }
 #Logo{
 	position: absolute;
@@ -260,40 +261,32 @@ body {
 
 	z-index: 12;
 }
-#ControlPanel #FormButton {
-	position: absolute;
-	background-image: url(../assets/buttons/form.png);
-	background-size:60px 60px;
-	width:60px;
-	height:60px;
-
-	right:5px;
-	top:250px;
-
-	z-index: 13;
-}
-
 #ControlPanel #FacebookButton {
 	position: absolute;
 	background-image: url(../assets/buttons/snsFacebookIcon.png);
-	background-size:60px 60px;
+	background-repeat:no-repeat;
+	background-size:45px 45px;
+	background-position: 50% 50%;
 	width:60px;
 	height:60px;
 
 	right:5px;
-	top:315px;
+	top:245px;
 
 	z-index: 14;
 }
 #ControlPanel #TwitterButton {
 	position: absolute;
 	background-image: url(../assets/buttons/snsTwitterIcon.png);
-	background-size:60px 60px;
+	background-repeat:no-repeat;
+	background-size:45px 45px;
+	background-position: 50% 50%;
 	width:60px;
 	height:60px;
 
+
 	right:5px;
-	top:380px;
+	top:305px;
 
 	z-index: 15;
 }
@@ -352,4 +345,24 @@ body {
 
 .fancybox-bg {
   background: #000;
+}
+#suggest {
+    position: absolute;
+    background-color: #FFFFFF;
+    border: 1px solid #CCCCFF;
+    font-size: 90%;
+    width: 200px;
+}
+#suggest div {
+    display: block;
+    width: 200px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+#suggest div.select{ /* キー上下で選択した場合のスタイル */
+    color: #FFFFFF;
+    background-color: #3366FF;
+}
+#suggest div.over{ /* マウスオーバ時のスタイル */
+    background-color: #99CCFF;
 }

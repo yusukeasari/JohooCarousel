@@ -3,7 +3,7 @@
 /* 外部設定 初期化 */
 
 (function() {
-  var APP_FILE, Block, BlockLayout, BlockLoader, BlockView, Blocks, Browser, ClickOnlyButton, ControlPanel, ControlPanelModel, DOMAIN, DT, DeleteValueButton, INIT_FILE, ImageViewer, MID, Marker, PhotomosaicViewer, Point, Popup, Pyramid, SModel, SearchPanel, SearchResult, Shadow, SmallMap, Tile, TileView, Tiles, Timeline, TimelineChild, TimelineChildView, UID, Utility, arrZoomSizeX, arrZoomSizeY, bgImageApi, blockList, cache, campTwitterText, commentZoom, getSection, getUrlVars, indiTwitterText, initialZoomSizeArr, minBlockSize, minZoom, motifHeight, motifWidth, nowZoom, pinchTrigger, pmviewer, prevZoom, searchApi, setInitData, snsLinkage, tileHeight, tileImageDir, tileImageExtension, tileWidth, tlImageWidth, zoomImageDir, zoomSize,
+  var APP_FILE, Block, BlockLayout, BlockLoader, BlockView, Blocks, Browser, ClickOnlyButton, ControlPanel, ControlPanelModel, DOMAIN, DT, DeleteValueButton, INIT_FILE, ImageViewer, MID, Marker, PhotomosaicViewer, Point, Popup, Pyramid, SModel, SearchPanel, SearchResult, Shadow, SmallMap, Tile, TileView, Tiles, Timeline, TimelineChild, TimelineChildView, UID, Utility, arrZoomSizeX, arrZoomSizeY, bgImageApi, blockList, cache, campTwitterText, commentZoom, getSection, getUrlVars, indiTwitterText, initialZoomSizeArr, minBlockSize, minZoom, motifHeight, motifWidth, nowZoom, pinchTrigger, pmviewer, prevZoom, searchApi, setInitData, snsLinkage, tileHeight, tileImageDir, tileImageExtension, tileWidth, tlImageWidth, zoomImageDir, zoomSize, zooming,
     bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
@@ -61,6 +61,8 @@
   zoomSize = [];
 
   blockList = [];
+
+  zooming = false;
 
 
   /*
@@ -584,19 +586,19 @@
         };
       })(this));
       if ($('#SearchPanelInnerContents #id').val() !== void 0) {
-        query += 'id=' + $('#SearchPanelInnerContents #id').val() + '&';
+        query += 'id=' + encodeURIComponent($('#SearchPanelInnerContents #id').val().trim()) + '&';
       }
       if ($('#SearchPanelInnerContents #b1').val() !== void 0) {
-        query += 'b1=' + $('#SearchPanelInnerContents #b1').val() + '&';
+        query += 'b1=' + encodeURIComponent($('#SearchPanelInnerContents #b1').val().trim()) + '&';
       }
       if ($('#SearchPanelInnerContents #b2').val() !== void 0) {
-        query += 'b2=' + $('#SearchPanelInnerContents #b2').val() + '&';
+        query += 'b2=' + encodeURIComponent($('#SearchPanelInnerContents #b2').val().trim()) + '&';
       }
       if ($('#SearchPanelInnerContents #b3').val() !== void 0) {
-        query += 'b3=' + $('#SearchPanelInnerContents #b3').val() + '&';
+        query += 'b3=' + encodeURIComponent($('#SearchPanelInnerContents #b3').val().trim()) + '&';
       }
       if ($('#SearchPanelInnerContents #b4').val() !== void 0) {
-        query += 'b4=' + $('#SearchPanelInnerContents #b4').val() + '&';
+        query += 'b4=' + encodeURIComponent($('#SearchPanelInnerContents #b4').val().trim()) + '&';
       }
       if (query !== '') {
         query.slice(0, -1);
@@ -1401,6 +1403,7 @@
       var pos;
       switch (h) {
         case 'zoomIn':
+          zooming = true;
           pos = this.moveToZoomInPos();
           $(this.el).find('img').hide();
           $(this.el).animate({
@@ -1411,6 +1414,7 @@
           }, 200, this.animateComplete);
           return this.trigger('marker', 200);
         case 'zoomOut':
+          zooming = true;
           $(this.el).find('img').hide();
           pos = this.moveToZoomOutPos();
           $(this.el).animate({
@@ -1436,6 +1440,7 @@
     };
 
     Pyramid.prototype.animateComplete = function() {
+      zooming = false;
       $(this.el).find('img').show();
       return this.render(this.checkActiveTile());
     };
@@ -1869,7 +1874,7 @@
     };
 
     ControlPanel.prototype.zoomIn = function() {
-      if (nowZoom < zoomSize.length - 1) {
+      if (nowZoom < zoomSize.length - 1 && !zooming) {
         prevZoom = nowZoom;
         nowZoom++;
         return this.trigger('change', 'zoomIn');
@@ -1877,7 +1882,7 @@
     };
 
     ControlPanel.prototype.zoomOut = function() {
-      if (nowZoom > minZoom) {
+      if (nowZoom > minZoom && !zooming) {
         prevZoom = nowZoom;
         nowZoom--;
         return this.trigger('change', 'zoomOut');
@@ -2251,6 +2256,7 @@
       this.isNextBlockExists = bind(this.isNextBlockExists, this);
       this.changeLayout = bind(this.changeLayout, this);
       this.setLayout = bind(this.setLayout, this);
+      this.setWidth = bind(this.setWidth, this);
       this.initialize = bind(this.initialize, this);
       return BlockLayout.__super__.constructor.apply(this, arguments);
     }
@@ -2266,34 +2272,37 @@
 
     BlockLayout.prototype.blockLayout = [];
 
-    BlockLayout.prototype.initialize = function() {
+    BlockLayout.prototype.initialize = function() {};
+
+    BlockLayout.prototype.setWidth = function(_width) {
+      console.log('WIDTH:' + _width);
       return this.blockLayout = [
         {
-          x: (320 / 2) - (tileWidth / 2) - (256 * 3) * 0.9 - 5,
+          x: (_width / 2) - (tileWidth / 2) - (256 * 3) * 0.9 - 5,
           y: (tileHeight - (256 * 0.9)) / 2,
           scale: 0.9
         }, {
-          x: (320 / 2) - (tileWidth / 2) - (256 * 2) * 0.9 - 5,
+          x: (_width / 2) - (tileWidth / 2) - (256 * 2) * 0.9 - 5,
           y: (tileHeight - (256 * 0.9)) / 2,
           scale: 0.9
         }, {
-          x: (320 / 2) - (tileWidth / 2) - (256 * 0.9) - 5,
+          x: (_width / 2) - (tileWidth / 2) - (256 * 0.9) - 5,
           y: (tileHeight - (256 * 0.9)) / 2,
           scale: 0.9
         }, {
-          x: (320 / 2) - (tileWidth / 2),
+          x: (_width / 2) - (tileWidth / 2),
           y: 0,
           scale: 1
         }, {
-          x: (320 / 2) - (tileWidth / 2) + 256 + 5,
+          x: (_width / 2) - (tileWidth / 2) + 256 + 5,
           y: (tileHeight - (256 * 0.9)) / 2,
           scale: 0.9
         }, {
-          x: (320 / 2) - (tileWidth / 2) + (256 * 2) + 5,
+          x: (_width / 2) - (tileWidth / 2) + (256 * 2) + 5,
           y: (tileHeight - (256 * 0.9)) / 2,
           scale: 0.9
         }, {
-          x: (320 / 2) - (tileWidth / 2) + (256 * 3) + 5,
+          x: (_width / 2) - (tileWidth / 2) + (256 * 3) + 5,
           y: (tileHeight - (256 * 0.9)) / 2,
           scale: 0.9
         }
@@ -2320,6 +2329,7 @@
 
     BlockLayout.prototype.changeLayout = function(_move) {
       var bid, item, j, len, num, results;
+      console.log('changeLayout');
       results = [];
       for (j = 0, len = blockList.length; j < len; j++) {
         item = blockList[j];
@@ -2553,6 +2563,7 @@
 
     ImageViewer.prototype.initialize = function() {
       var imageList, wrap;
+      this.width = Browser.width - 40 < this.width ? Browser.width - 40 : this.width;
       imageList = [];
       this.stage = new createjs.Stage('imageViewer');
       if (createjs.Touch.isSupported()) {
@@ -2562,7 +2573,8 @@
       this.stage.canvas.height = this.height;
       wrap = new createjs.Container();
       this.stage.addChild(wrap);
-      this.blocklayout = new BlockLayout();
+      this.blocklayout = new BlockLayout;
+      this.blocklayout.setWidth(this.width);
       this.blocklayout.on("blockclear", this.blockclear);
       this.blocklayout.on("reload", this.reload);
       this.blocklayout.on("layoutchanged", this.layoutchanged);
@@ -2741,9 +2753,11 @@
 
     ImageViewer.prototype.addButtons = function() {
       this.nextButton = this.createButton("▶");
-      this.nextButton.x = 292;
+      console.log(this.nextButton.width);
+      this.nextButton.x = this.width < 320 ? ((this.width - 256) / 2) + 256 - 28 : 292;
       this.stage.addChild(this.nextButton);
       this.prevButton = this.createButton("◀");
+      this.prevButton.x = this.width < 320 ? (this.width - 256) / 2 : 0;
       this.stage.addChild(this.prevButton);
       this.buttonon();
       return this;
@@ -2815,10 +2829,12 @@
     };
 
     ImageViewer.prototype.createButton = function(_label) {
-      var btn, btnBg, btnLabel;
+      var _h, _y, btn, btnBg, btnLabel;
+      _y = this.width < 320 ? 13 : 0;
+      _h = this.width < 320 ? 256 * 0.9 : 256;
       btn = new createjs.Container();
       btnBg = new createjs.Shape();
-      btnBg.graphics.beginFill("black").drawRoundRect(0, 13, 28, 230, 0, 0);
+      btnBg.graphics.beginFill("black").drawRoundRect(0, _y, 28, _h, 0, 0);
       btnBg.alpha = 0.2;
       btn.addChild(btnBg);
       btnLabel = new createjs.Text(_label, "24px sans-serif", "white");

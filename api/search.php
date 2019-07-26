@@ -41,51 +41,74 @@ if(!empty($_GET['id'])){
 		echo '[{"ERROR":"NOTFOUND"}]';
 	}
 }else if(!empty($_GET['n'])&&!empty($_GET['request'])&&!empty($_GET['base'])){
-	$j = file_get_contents("../app/mid.json");
-	$mid=json_decode($j[0],true);
-#	$limit_num = $mid['motifWidth']*$mid['motifHeight'];
-
 	$result = [];
 	$json = file("../swfData/pitcomdb.json");
 	$line=json_decode($json[0],true);
+
 	// $lineをnumでソートする
 	$ns = array_column($line,'num');
 	array_multisort($ns, SORT_ASC, $line);
 
-
 	$line_c = $line;
-
-	//
-	$nkey = array_search($_GET['n'], array_column($line, 'num'));
-	//nより小さいnumの投稿をlaryに、大きい投稿をharyへ格納。nはlineに残す
-	$lary=array_splice($line,0,$nkey);
-	$hary=array_splice($line,1, count($line));
-
+	//リクエストされたキーからnumとbidを算出
 	$array = explode(",",$_GET['request']);
 
-	$lreq = array_splice($array,0,count(array_filter($array,function($var){
-		return ($var < 3) ?true:false;
-	})));
-	$hreq =$array;
+	//bidからnumが下限または上限を超えていないかチェックする
+	sort($array);
 
-	if(count($lary)<count($lreq)){
-		$c = $line_c;
-		$lary = array_merge($line_c,$lary);
-	}
-	$lary = array_splice($lary,count($lary)-count($lreq),count($lreq));
-	if(count($hary)<count($hreq)){
-		$c = $line_c;
-		$hary = array_merge($hary,$line_c);
-	}
-	$hary = array_splice($hary,0,count($hreq));
 
-	$array=array_merge($lary,$hary);
-	$req=array_merge($lreq,$hreq);
-	foreach($array as $k=>$v){
-		$array[$k]["bid"] = $req[$k];
+	$last_key = array_last($array);
+	$ary = array_last($line);
+	$last_num = $ary['num'];
+
+	//下限値
+	if($_GET['n']+(($_GET['base']*-1)+$array[0]) < 1){
+		//下限値より小さい場合
+		$ret = array_slice($line_c,$last_num-10,10);
+		$line = array_merge($ret,$line);
+	}
+	//上限値
+	if($_GET['n']+(($_GET['base']*-1)+$last_key) > $last_num){
+		$ret = array_slice($line_c,0,10);
+		$line = array_merge($line,$ret);
 	}
 
-	echo json_encode($array);
+	foreach($array as $k => $v){
+		//
+		$array[$k] = [];
+		if($_GET['n']+(($_GET['base']*-1)+$v) < 1){
+			$array[$k]["num"] = $last_num + ($_GET['n']+(($_GET['base']*-1)+$v));
+		}else if($_GET['n']+(($_GET['base']*-1)+$v) > $last_num){
+			$array[$k]["num"] = $_GET['n']+(($_GET['base']*-1)+$v) - $last_num;
+		}else{
+			$array[$k]["num"] = $_GET['n']+(($_GET['base']*-1)+$v);
+		}
+		$array[$k]["bid"] = $v;
+	}
+
+	sort($array);
+	//配列の最後を取得
+#	$last_key = array_last($array);
+
+#	$last_num = array_last($line);
+
+	//完全一致を取得
+#	$nums = array_column($line,'num');
+#	$ret = in_array($nums,$_GET['base']);
+
+	$result = array();
+	foreach($line as $k=>$v){
+		if(substr($v["img"],0,1) == "9"){
+			$v["img"] = substr($v["img"],1);
+		}
+		foreach($array as $k2 => $v2){
+			if($v2["num"] == $v["num"]){
+				$v["bid"] = $v2["bid"];
+				array_push($result,$v);
+			}
+		}
+	}
+	echo json_encode($result);
 
 #	error_log($_GET['request']);
 }else{
@@ -140,11 +163,4 @@ if(!empty($_GET['id'])){
 function array_last(array $array)
 {
     return end($array);
-}
-function array_first(array $array)
-{
-    return reset($array);
-}
-function fil_less3($var){
-	return ($var < 3) ?true:false;
 }
